@@ -42,6 +42,8 @@ Procfile · .python-version · requirements.txt   ← despliegue en Heroku
 |---|---|
 | `GOOGLE_API_KEY` | Clave de Gemini |
 | `MODELO` | Modelo a usar (`gemini-3.5-flash-lite`) |
-| `TELEGRAM_TOKEN` | Token del bot, lo da BotFather (vacío hasta el paso 5) |
+| `API_KEY` | Clave que exige `/chat` en la cabecera `X-API-Key` |
+| `TELEGRAM_TOKEN` | Token del bot, lo da BotFather |
+| `TELEGRAM_ALLOWED_IDS` | `chat_id` de Telegram autorizados, separados por coma |
 | `TELEGRAM_SECRET` | Secreto que Telegram manda en cada webhook para que la API lo verifique |
 | `PUBLIC_URL` | URL https pública (la de Render; vacío hasta desplegar) |

@@ -1,0 +1,39 @@
+ENTORNO: LOCAL · FECHA: 2026-11-11 15:34:56 -03 · uvicorn api.app:app --port 8000
+INFO:     Started server process [86727]
+INFO:     Waiting for application startup.
+INFO:     Grafo router listo (modelo gemini-3.5-flash-lite)
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:62044 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62046 - "GET /health HTTP/1.1" 200 OK
+WARNING:  Acceso rechazado a /chat (X-API-Key ausente)
+INFO:     127.0.0.1:62048 - "POST /chat HTTP/1.1" 401 Unauthorized
+WARNING:  Acceso rechazado a /chat (X-API-Key incorrecta)
+INFO:     127.0.0.1:62050 - "POST /chat HTTP/1.1" 401 Unauthorized
+INFO:     agente_preventa → buscar_productos(consulta='polera básica')
+INFO:     agente_preventa → consultar_stock(producto_id='POL-001', talla='M', color='azul')
+INFO:     agente_preventa → consultar_stock(producto_id='POL-001', color='azul')
+INFO:     /chat user_id=eval-1 → ruta=preventa · motivo: El cliente consulta sobre la disponibilidad y talla de un producto antes de realizar una compra.
+INFO:     127.0.0.1:62052 - "POST /chat HTTP/1.1" 200 OK
+INFO:     agente_preventa → costo_envio(ciudad='Valparaíso')
+INFO:     /chat user_id=eval-1 → ruta=preventa · motivo: El cliente consulta por el costo de envío de un producto antes de realizar la compra.
+INFO:     127.0.0.1:62055 - "POST /chat HTTP/1.1" 200 OK
+INFO:     agente_postventa → consultar_pedido(numero_pedido='4521')
+INFO:     /chat user_id=eval-2 → ruta=postventa · motivo: El cliente reporta un problema con un pedido existente que ya fue entregado.
+INFO:     127.0.0.1:62058 - "POST /chat HTTP/1.1" 200 OK
+INFO:     agente_postventa → consultar_pedido(numero_pedido='4521')
+INFO:     agente_postventa → registrar_solicitud(tipo='reclamo', numero_pedido='4521', motivo='producto llegó roto', producto='ZAP-010')
+INFO:     /chat user_id=eval-2 → ruta=postventa · motivo: El cliente indica que el producto recibido de su pedido está dañado.
+INFO:     127.0.0.1:62060 - "POST /chat HTTP/1.1" 200 OK
+INFO:     agente_postventa → consultar_pedido(numero_pedido='4498')
+INFO:     /chat user_id=eval-3 → ruta=postventa · motivo: El cliente solicita una devolución haciendo referencia a un pedido ya realizado.
+INFO:     127.0.0.1:62062 - "POST /chat HTTP/1.1" 200 OK
+INFO:     /chat user_id=eval-1 → ruta=generica · motivo: El cliente pregunta la hora en Tokio, lo cual no tiene relación con la tienda online.
+INFO:     127.0.0.1:62064 - "POST /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62066 - "POST /chat HTTP/1.1" 422 Unprocessable Entity
+WARNING:  Webhook /telegram rechazado: secreto ausente o incorrecto
+INFO:     127.0.0.1:62068 - "POST /telegram HTTP/1.1" 403 Forbidden
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [86727]

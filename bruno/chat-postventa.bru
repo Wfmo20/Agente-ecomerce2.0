@@ -10,6 +10,10 @@ post {
   auth: none
 }
 
+headers {
+  X-API-Key: {{apiKey}}
+}
+
 body:json {
   {
     "user_id": "bruno-postventa",

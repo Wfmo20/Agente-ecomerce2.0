@@ -1,0 +1,39 @@
+{
+  "moneda": "CLP",
+  "productos": [
+    {"id": "POL-001", "nombre": "Polera básica algodón", "categoria": "poleras", "precio": 12990,
+     "stock": {"azul": {"S": 4, "M": 0, "L": 6, "XL": 2}, "negra": {"S": 8, "M": 5, "L": 3, "XL": 0}, "blanca": {"S": 2, "M": 7, "L": 7, "XL": 4}}},
+    {"id": "POL-002", "nombre": "Polera deportiva dry-fit", "categoria": "poleras", "precio": 17990,
+     "stock": {"azul": {"S": 3, "M": 9, "L": 4, "XL": 1}, "gris": {"S": 0, "M": 2, "L": 5, "XL": 3}}},
+    {"id": "ZAP-010", "nombre": "Zapatillas running Ligera", "categoria": "zapatillas", "precio": 54990,
+     "stock": {"negro": {"38": 2, "39": 4, "40": 5, "41": 3, "42": 0, "43": 1}, "blanco": {"38": 1, "39": 0, "40": 2, "41": 4, "42": 2, "43": 0}}},
+    {"id": "ZAP-011", "nombre": "Zapatillas urbanas Classic", "categoria": "zapatillas", "precio": 39990,
+     "stock": {"blanco": {"38": 3, "39": 3, "40": 6, "41": 6, "42": 4, "43": 2}}},
+    {"id": "JEA-020", "nombre": "Jeans slim fit", "categoria": "pantalones", "precio": 29990,
+     "stock": {"azul": {"38": 5, "40": 8, "42": 6, "44": 2}, "negro": {"38": 0, "40": 3, "42": 4, "44": 1}}},
+    {"id": "POLR-030", "nombre": "Polerón con capucha", "categoria": "polerones", "precio": 32990,
+     "stock": {"gris": {"S": 2, "M": 4, "L": 0, "XL": 2}, "azul": {"S": 1, "M": 3, "L": 5, "XL": 2}}},
+    {"id": "CHA-040", "nombre": "Chaqueta cortaviento", "categoria": "chaquetas", "precio": 44990,
+     "stock": {"negra": {"S": 1, "M": 2, "L": 2, "XL": 0}, "verde": {"S": 0, "M": 1, "L": 3, "XL": 1}}},
+    {"id": "CAL-050", "nombre": "Calcetines deportivos (pack 3 pares)", "categoria": "accesorios", "precio": 6990,
+     "stock": {"blanco": {"única": 30}, "negro": {"única": 25}}}
+  ],
+  "promociones": [
+    {"codigo": "BIENVENIDA10", "descripcion": "10% de descuento en la primera compra, sin monto mínimo. No acumulable con otras promociones."},
+    {"codigo": "CALCETINES3X2", "descripcion": "Llevando 3 packs de calcetines deportivos, pagas 2."}
+  ],
+  "envio": {
+    "gratis_desde": 49990,
+    "tarifas": {
+      "santiago":     {"costo": 3990, "plazo": "1 a 2 días hábiles"},
+      "valparaiso":   {"costo": 4990, "plazo": "2 a 3 días hábiles"},
+      "vina del mar": {"costo": 4990, "plazo": "2 a 3 días hábiles"},
+      "concepcion":   {"costo": 5490, "plazo": "2 a 4 días hábiles"},
+      "la serena":    {"costo": 5990, "plazo": "3 a 4 días hábiles"},
+      "antofagasta":  {"costo": 7990, "plazo": "4 a 6 días hábiles"},
+      "puerto montt": {"costo": 7490, "plazo": "4 a 6 días hábiles"},
+      "punta arenas": {"costo": 9990, "plazo": "6 a 8 días hábiles"}
+    }
+  },
+  "pagos": ["Tarjeta de débito", "Tarjeta de crédito: hasta 6 cuotas sin interés", "Transferencia bancaria (el pedido se despacha al confirmar el pago)"]
+}

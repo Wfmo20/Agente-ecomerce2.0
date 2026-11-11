@@ -1,0 +1,19 @@
+{
+  "_nota": "Pedidos de PRUEBA. Las fechas se calculan desde hoy (hace_dias) para que los plazos sigan valiendo en cualquier fecha.",
+  "plazo_devolucion_dias": 30,
+  "pedidos": [
+    {"numero": "4521", "estado": "entregado", "hace_dias": 3, "ciudad": "Santiago",
+     "items": [{"id": "POL-001", "nombre": "Polera básica algodón", "color": "azul", "talla": "M", "cantidad": 1, "precio": 12990},
+               {"id": "ZAP-010", "nombre": "Zapatillas running Ligera", "color": "negro", "talla": "41", "cantidad": 1, "precio": 54990}],
+     "envio": 0, "total": 67980, "seguimiento": "CHX-88123"},
+    {"numero": "4530", "estado": "en camino", "hace_dias": 1, "ciudad": "Valparaíso", "entrega_estimada_en_dias": 2,
+     "items": [{"id": "JEA-020", "nombre": "Jeans slim fit", "color": "azul", "talla": "40", "cantidad": 1, "precio": 29990}],
+     "envio": 4990, "total": 34980, "seguimiento": "CHX-88457"},
+    {"numero": "4540", "estado": "en preparación", "hace_dias": 0, "ciudad": "Concepción",
+     "items": [{"id": "POLR-030", "nombre": "Polerón con capucha", "color": "azul", "talla": "M", "cantidad": 1, "precio": 32990}],
+     "envio": 5490, "total": 38480, "seguimiento": null},
+    {"numero": "4498", "estado": "entregado", "hace_dias": 45, "ciudad": "Santiago",
+     "items": [{"id": "ZAP-011", "nombre": "Zapatillas urbanas Classic", "color": "blanco", "talla": "40", "cantidad": 1, "precio": 39990}],
+     "envio": 3990, "total": 43980, "seguimiento": "CHX-80211"}
+  ]
+}

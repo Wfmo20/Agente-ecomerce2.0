@@ -1,0 +1,95 @@
+ENTORNO: LOCAL (http://localhost:8000) · FECHA: 2026-11-11 15:34:57 -03
+La clave real de X-API-Key se muestra como <API_KEY>.
+
+## 1. GET /health
+{"ok":true,"modelo":"gemini-3.5-flash-lite"}
+→ HTTP 200
+
+## 2. /chat SIN X-API-Key → acceso rechazado
+{"detail":"Falta X-API-Key o no es válida."}
+→ HTTP 401
+
+## 3. /chat con X-API-Key INCORRECTA (clave-falsa) → acceso rechazado
+{"detail":"Falta X-API-Key o no es válida."}
+→ HTTP 401
+
+## 4. /chat con X-API-Key: <API_KEY> (acceso permitido) · user_id=eval-1 · "¿tienen la polera básica azul en talla M?"
+{
+  "ruta": "preventa",
+  "motivo": "El cliente consulta sobre la disponibilidad y talla de un producto antes de realizar una compra.",
+  "respuesta": "La Polera básica algodón azul en talla M está agotada. Pero tenemos stock en S (4), L (6) y XL (2) si te sirve otra talla.",
+  "herramientas": [
+    "buscar_productos(consulta='polera básica')",
+    "consultar_stock(producto_id='POL-001', talla='M', color='azul')",
+    "consultar_stock(producto_id='POL-001', color='azul')"
+  ]
+}
+→ HTTP 200
+
+
+## 5. /chat con X-API-Key: <API_KEY> (acceso permitido) · user_id=eval-1 · "¿cuánto cuesta el envío a Valparaíso?"
+{
+  "ruta": "preventa",
+  "motivo": "El cliente consulta por el costo de envío de un producto antes de realizar la compra.",
+  "respuesta": "El envío a Valparaíso cuesta $4.990 y llega en 2 a 3 días hábiles. Además, es gratis si tu compra supera los $49.990.",
+  "herramientas": [
+    "costo_envio(ciudad='Valparaíso')"
+  ]
+}
+→ HTTP 200
+
+
+## 6. /chat con X-API-Key: <API_KEY> (acceso permitido) · user_id=eval-2 · "mi pedido 4521 llegó roto"
+{
+  "ruta": "postventa",
+  "motivo": "El cliente reporta un problema con un pedido existente que ya fue entregado.",
+  "respuesta": "Tu pedido 4521 incluye una Polera básica algodón y unas Zapatillas running Ligera. ¿Cuál de los dos productos llegó roto para registrar tu reclamo?",
+  "herramientas": [
+    "consultar_pedido(numero_pedido='4521')"
+  ]
+}
+→ HTTP 200
+
+
+## 7. /chat con X-API-Key: <API_KEY> (acceso permitido) · user_id=eval-2 · "las zapatillas"
+{
+  "ruta": "postventa",
+  "motivo": "El cliente indica que el producto recibido de su pedido está dañado.",
+  "respuesta": "Tu reclamo por las Zapatillas running Ligera del pedido 4521 quedó registrado con el número de caso SOL-0001. Un ejecutivo contactará al cliente en un máximo de 2 días hábiles con las instrucciones.",
+  "herramientas": [
+    "consultar_pedido(numero_pedido='4521')",
+    "registrar_solicitud(tipo='reclamo', numero_pedido='4521', motivo='producto llegó roto', producto='ZAP-010')"
+  ]
+}
+→ HTTP 200
+
+
+## 8. /chat con X-API-Key: <API_KEY> (acceso permitido) · user_id=eval-3 · "quiero devolver las zapatillas del pedido 4498, no me quedaron"
+{
+  "ruta": "postventa",
+  "motivo": "El cliente solicita una devolución haciendo referencia a un pedido ya realizado.",
+  "respuesta": "Hola, el pedido 4498 fue entregado el 2026-09-27 y ya pasaron 45 días, por lo que estás fuera del plazo para realizar devoluciones.",
+  "herramientas": [
+    "consultar_pedido(numero_pedido='4498')"
+  ]
+}
+→ HTTP 200
+
+
+## 9. /chat con X-API-Key: <API_KEY> (acceso permitido) · user_id=eval-1 · "¿qué hora es en Tokio?"
+{
+  "ruta": "generica",
+  "motivo": "El cliente pregunta la hora en Tokio, lo cual no tiene relación con la tienda online.",
+  "respuesta": "¡Hola! Este chat es para ayudarte con la tienda: productos, precios, envíos y tus pedidos. ¿En qué te puedo ayudar?",
+  "herramientas": []
+}
+→ HTTP 200
+
+
+## 10. Entrada inválida: texto vacío
+{"detail":[{"type":"string_too_short","loc":["body","texto"],"msg":"String should have at least 1 character","input":"","ctx":{"min_length":1}}]}
+→ HTTP 422
+
+## 11. /telegram sin secreto → rechazado
+{"detail":"Secreto de Telegram inválido."}
+→ HTTP 403

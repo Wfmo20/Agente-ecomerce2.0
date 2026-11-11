@@ -41,6 +41,8 @@ def main() -> None:
         print(" → ".join(saltos))
         if estado.get("motivo"):
             print(f"motivo: {estado['motivo']}")
+        for herramienta in estado.get("herramientas") or []:
+            print(f"herramienta: {herramienta}")
         print()
     for clave in ("ruta", "motivo", "respuesta"):
         if clave in estado:

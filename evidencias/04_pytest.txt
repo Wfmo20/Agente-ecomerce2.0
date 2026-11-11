@@ -1,0 +1,59 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.2.0, pluggy-1.7.0 -- /Users/soporte-ti/Desktop/Agentes_IA_UAI/Taller Modulo 2 sesion 6/agente-ecommerce 2.0/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/soporte-ti/Desktop/Agentes_IA_UAI/Taller Modulo 2 sesion 6/agente-ecommerce 2.0
+configfile: pytest.ini
+testpaths: tests
+plugins: langsmith-0.14.17, anyio-4.16.0
+collecting ... collected 48 items
+
+tests/test_agentes.py::test_preventa_stock_real PASSED                   [  2%]
+tests/test_agentes.py::test_preventa_envio_conserva_cifras PASSED        [  4%]
+tests/test_agentes.py::test_postventa_pide_numero_de_pedido PASSED       [  6%]
+tests/test_agentes.py::test_postventa_estado_del_pedido PASSED           [  8%]
+tests/test_agentes.py::test_postventa_pregunta_producto_antes_de_registrar PASSED [ 10%]
+tests/test_api.py::test_health PASSED                                    [ 12%]
+tests/test_api.py::test_chat_con_clave_responde PASSED                   [ 14%]
+tests/test_api.py::test_chat_sin_clave_valida_da_401_y_no_llama_al_modelo[cabeceras0] PASSED [ 16%]
+tests/test_api.py::test_chat_sin_clave_valida_da_401_y_no_llama_al_modelo[cabeceras1] PASSED [ 18%]
+tests/test_api.py::test_chat_sin_api_key_configurada_da_503 PASSED       [ 20%]
+tests/test_api.py::test_chat_body_invalido_da_422[cuerpo0] PASSED        [ 22%]
+tests/test_api.py::test_chat_body_invalido_da_422[cuerpo1] PASSED        [ 25%]
+tests/test_api.py::test_chat_body_invalido_da_422[cuerpo2] PASSED        [ 27%]
+tests/test_api.py::test_chat_modelo_falla_da_502_sin_filtrar_detalles PASSED [ 29%]
+tests/test_api.py::test_telegram_secreto_invalido_da_403[cabeceras0] PASSED [ 31%]
+tests/test_api.py::test_telegram_secreto_invalido_da_403[cabeceras1] PASSED [ 33%]
+tests/test_api.py::test_telegram_responde_al_chat_autorizado PASSED      [ 35%]
+tests/test_api.py::test_telegram_chat_no_autorizado_se_rechaza PASSED    [ 37%]
+tests/test_api.py::test_telegram_ignora_updates_sin_texto PASSED         [ 39%]
+tests/test_api.py::test_telegram_mensaje_muy_largo PASSED                [ 41%]
+tests/test_api.py::test_telegram_modelo_falla_igual_da_200_y_avisa PASSED [ 43%]
+tests/test_router.py::test_caso[\xbftienen la polera azul en talla M?] PASSED [ 45%]
+tests/test_router.py::test_caso[qu\xe9 caro, \xbfhay descuento?] PASSED  [ 47%]
+tests/test_router.py::test_caso[\xbfcu\xe1nto cuesta el env\xedo a Valpara\xedso?] PASSED [ 50%]
+tests/test_router.py::test_caso[\xbfpuedo pagar en cuotas con tarjeta de cr\xe9dito?] PASSED [ 52%]
+tests/test_router.py::test_caso[quiero comprar unas zapatillas para correr, \xbfqu\xe9 me recomiendan?] PASSED [ 54%]
+tests/test_router.py::test_caso[mi pedido 4521 lleg\xf3 roto] PASSED     [ 56%]
+tests/test_router.py::test_caso[\xbfcu\xe1ndo llega lo que compr\xe9 ayer?] PASSED [ 58%]
+tests/test_router.py::test_caso[quiero devolver unas zapatillas] PASSED  [ 60%]
+tests/test_router.py::test_caso[tengo un problema con una polera] PASSED [ 62%]
+tests/test_router.py::test_caso[me cobraron dos veces la compra de la semana pasada] PASSED [ 64%]
+tests/test_router.py::test_caso[hola] PASSED                             [ 66%]
+tests/test_router.py::test_caso[buenas tardes] PASSED                    [ 68%]
+tests/test_router.py::test_caso[\xbfqu\xe9 hora es en Tokio?] PASSED     [ 70%]
+tests/test_router.py::test_caso[\xbfva a llover ma\xf1ana en Santiago?] PASSED [ 72%]
+tests/test_router.py::test_caso[cu\xe9ntame un chiste] PASSED            [ 75%]
+tests/test_router.py::test_umbral_de_aciertos PASSED                     [ 77%]
+tests/test_tools.py::test_stock_agotado_y_disponible PASSED              [ 79%]
+tests/test_tools.py::test_producto_inexistente PASSED                    [ 81%]
+tests/test_tools.py::test_buscar_sin_tildes_ni_plural PASSED             [ 83%]
+tests/test_tools.py::test_envio_valparaiso_con_y_sin_tilde PASSED        [ 85%]
+tests/test_tools.py::test_envio_gratis_desde_49990 PASSED                [ 87%]
+tests/test_tools.py::test_ciudad_sin_despacho PASSED                     [ 89%]
+tests/test_tools.py::test_pedido_y_montos PASSED                         [ 91%]
+tests/test_tools.py::test_devolucion_fuera_de_plazo_y_no_entregado PASSED [ 93%]
+tests/test_tools.py::test_reclamo_registra_caso PASSED                   [ 95%]
+tests/test_tools.py::test_producto_que_no_esta_en_el_pedido PASSED       [ 97%]
+tests/test_tools.py::test_producto_por_nombre PASSED                     [100%]
+
+============================= 48 passed in 51.30s ==============================
