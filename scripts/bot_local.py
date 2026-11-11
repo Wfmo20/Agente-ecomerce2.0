@@ -21,6 +21,8 @@ from src.router.graph import graph  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 logging.getLogger("httpx").setLevel(logging.WARNING)  # sus logs incluyen la URL con el token
+for ruidoso in ("httpx2", "google_genai"):  # llamadas a Gemini: no aportan a la traza
+    logging.getLogger(ruidoso).setLevel(logging.WARNING)
 
 token = os.environ.get("TELEGRAM_TOKEN", "")
 if not token:

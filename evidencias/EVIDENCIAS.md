@@ -27,11 +27,13 @@ Archivos:
 
 | # | Entorno y fecha | Solicitud | Resultado esperado | Resultado obtenido | Observaciones |
 |---|---|---|---|---|---|
-| T1 | LOCAL · _fecha_ | Mensaje desde un chat **no autorizado** | "No estás autorizado… tu chat_id es …"; log `rechazado`; no llama al modelo | _pendiente_ | Captura `03_telegram_rechazado.png` |
-| T2 | LOCAL · _fecha_ | "¿tienen la polera básica azul en talla M?" (chat autorizado) | preventa; agotada y alternativas con precio | _pendiente_ | Captura chat + terminal |
-| T3 | LOCAL · _fecha_ | "mi pedido 4521 llegó roto" → "las zapatillas" | Pregunta producto, luego caso `SOL-…` | _pendiente_ | — |
-| T4 | LOCAL · _fecha_ | "quiero devolver las zapatillas del pedido 4498" | Fuera de plazo (45 días > 30) | _pendiente_ | — |
-| T5 | LOCAL · _fecha_ | "¿qué hora es en Tokio?" | generica | _pendiente_ | — |
+| T1 | LOCAL · 2026-11-11 15:54 | "hola" desde un chat **no autorizado** (`TELEGRAM_ALLOWED_IDS` vacío) | "No estás autorizado… tu chat_id es …"; no llama al modelo | Respuesta de rechazo; log `WARNING Telegram chat_id=… rechazado` | Acceso rechazado. `03a_terminal_rechazado.txt` + captura `03_telegram_rechazado.png`. Luego se agregó el chat_id a `TELEGRAM_ALLOWED_IDS` |
+| T2 | LOCAL · 2026-11-11 16:44 | "¿tienen la polera básica azul en talla M?" (chat autorizado) | preventa; agotada y alternativas con precio | ruta=preventa; `buscar_productos('polera')`, `consultar_stock(POL-001, azul)`, `consultar_stock(POL-002, azul)` | Acceso permitido. `03b_terminal_autorizado.txt` + captura del chat |
+| T3 | LOCAL · 2026-11-11 16:45 | "¿cuánto cuesta el envío a Valparaíso?" | $4.990, 2 a 3 días hábiles | ruta=preventa; `costo_envio(ciudad='Valparaíso')` | Captura del chat |
+| T4 | LOCAL · 2026-11-11 16:45 | "mi pedido 4521 llegó roto" → "las zapatillas" | Pregunta el producto, luego caso `SOL-…` | ruta=postventa; `consultar_pedido('4521')` → `registrar_solicitud(producto='Zapatillas running Ligera', tipo='reclamo')` | Pide el dato faltante antes de registrar |
+| T5 | LOCAL · 2026-11-11 16:46 | "quiero devolver las zapatillas del pedido 4498" | Fuera de plazo (45 días > 30) | ruta=postventa; `consultar_pedido('4498')`, sin registrar solicitud | Límite informado |
+| T6 | LOCAL · 2026-11-11 16:46 | "¿qué hora es en Tokio?" | generica | ruta=generica | — |
+| T7 | LOCAL · 2026-11-11 16:37–16:38 | Mensajes libres ("adidas", "zapatillas", el nombre del usuario) | Preventa busca en el catálogo; lo ajeno va a generica | preventa con `buscar_productos('adidas')` y `('zapatillas')`; el nombre → generica | Observación: no hay marca "adidas" en el catálogo de prueba |
 
 ## Despliegue en Render (opcional, +1)
 

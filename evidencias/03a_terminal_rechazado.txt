@@ -1,0 +1,4 @@
+Webhook https://agente-ecomerce2-0.onrender.com/telegram eliminado.
+Bot @wfmo20_bot atendiendo en LOCAL (polling). Chats autorizados: 0. Ctrl+C para detener.
+Aviso: TELEGRAM_ALLOWED_IDS está vacío; todos los chats serán rechazados (el bot les dirá su chat_id).
+2026-11-11 15:54:48 WARNING Telegram chat_id=8740055884 rechazado (no está en TELEGRAM_ALLOWED_IDS)

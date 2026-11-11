@@ -1,0 +1,61 @@
+Bot @wfmo20_bot atendiendo en LOCAL (polling). Chats autorizados: 1. Ctrl+C para detener.
+2026-11-11 16:36:48 INFO AFC is enabled with max remote calls: 10.
+2026-11-11 16:36:49 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:36:49 INFO Telegram chat_id=8740055884 → ruta=generica · motivo: Es un saludo inicial sin ninguna consulta sobre productos o pedidos.
+2026-11-11 16:37:16 INFO AFC is enabled with max remote calls: 10.
+2026-11-11 16:37:18 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:37:19 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:37:20 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:37:20 INFO agente_preventa → buscar_productos(consulta='')
+2026-11-11 16:37:20 INFO Telegram chat_id=8740055884 → ruta=preventa · motivo: El cliente pregunta por los productos disponibles para la venta.
+2026-11-11 16:38:07 INFO AFC is enabled with max remote calls: 10.
+2026-11-11 16:38:08 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:38:09 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:38:11 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:38:11 INFO agente_preventa → buscar_productos(consulta='adidas')
+2026-11-11 16:38:11 INFO Telegram chat_id=8740055884 → ruta=preventa · motivo: El cliente está preguntando por la disponibilidad de un producto antes de realizar una compra.
+2026-11-11 16:38:26 INFO AFC is enabled with max remote calls: 10.
+2026-11-11 16:38:28 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:38:29 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:38:30 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:38:30 INFO agente_preventa → buscar_productos(consulta='zapatillas')
+2026-11-11 16:38:30 INFO Telegram chat_id=8740055884 → ruta=preventa · motivo: El cliente pregunta por los modelos disponibles antes de realizar una compra.
+2026-11-11 16:38:52 INFO AFC is enabled with max remote calls: 10.
+2026-11-11 16:38:53 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:38:53 INFO Telegram chat_id=8740055884 → ruta=generica · motivo: El cliente esta compartiendo su nombre y no una intencion de compra ni de postventa.
+2026-11-11 16:44:28 INFO AFC is enabled with max remote calls: 10.
+2026-11-11 16:44:29 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:44:30 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:44:31 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:44:33 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:44:33 INFO agente_preventa → buscar_productos(consulta='polera')
+2026-11-11 16:44:33 INFO agente_preventa → consultar_stock(color='azul', producto_id='POL-001')
+2026-11-11 16:44:33 INFO agente_preventa → consultar_stock(producto_id='POL-002', color='azul')
+2026-11-11 16:44:33 INFO Telegram chat_id=8740055884 → ruta=preventa · motivo: El cliente está preguntando por la disponibilidad y características de un producto antes de realizar la compra.
+2026-11-11 16:44:56 INFO AFC is enabled with max remote calls: 10.
+2026-11-11 16:44:58 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:44:59 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:45:01 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:45:01 INFO agente_preventa → costo_envio(ciudad='Valparaíso')
+2026-11-11 16:45:01 INFO Telegram chat_id=8740055884 → ruta=preventa · motivo: El cliente pregunta por los costos de envío antes de realizar una compra.
+2026-11-11 16:45:21 INFO AFC is enabled with max remote calls: 10.
+2026-11-11 16:45:23 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:45:24 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:45:26 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:45:26 INFO agente_postventa → consultar_pedido(numero_pedido='4521')
+2026-11-11 16:45:26 INFO Telegram chat_id=8740055884 → ruta=postventa · motivo: El cliente reporta un problema con un pedido existente que llegó roto.
+2026-11-11 16:45:49 INFO AFC is enabled with max remote calls: 10.
+2026-11-11 16:45:50 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:45:51 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:45:52 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:45:52 INFO agente_postventa → registrar_solicitud(producto='Zapatillas running Ligera', tipo='reclamo', numero_pedido='4521', motivo='producto dañado (roto)')
+2026-11-11 16:45:52 INFO Telegram chat_id=8740055884 → ruta=postventa · motivo: El cliente reporta que un producto de su pedido ya realizado llegó roto.
+2026-11-11 16:46:35 INFO AFC is enabled with max remote calls: 10.
+2026-11-11 16:46:36 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:46:37 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:46:38 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:46:38 INFO agente_postventa → consultar_pedido(numero_pedido='4498')
+2026-11-11 16:46:38 INFO Telegram chat_id=8740055884 → ruta=postventa · motivo: El cliente solicita una devolución para un pedido ya realizado.
+2026-11-11 16:46:57 INFO AFC is enabled with max remote calls: 10.
+2026-11-11 16:46:58 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-11-11 16:46:58 INFO Telegram chat_id=8740055884 → ruta=generica · motivo: El cliente pregunta la hora en Tokio, lo cual no está relacionado con los productos o pedidos de la tienda.
