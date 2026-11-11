@@ -1,0 +1,18 @@
+meta {
+  name: chat-preventa
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/chat
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "user_id": "bruno-preventa",
+    "texto": "¿tienen la polera azul en talla M?"
+  }
+}

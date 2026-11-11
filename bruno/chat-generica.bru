@@ -1,0 +1,18 @@
+meta {
+  name: chat-generica
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/chat
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "user_id": "bruno-generica",
+    "texto": "¿qué hora es en Tokio?"
+  }
+}

@@ -1,0 +1,18 @@
+# Secretos: nunca al repositorio (se sube solo .env.example)
+.env
+.env.*
+!.env.example
+
+# Entorno virtual y cachés
+.venv/
+__pycache__/
+.langgraph_api/
+.pytest_cache/
+
+# Datos y archivos locales
+data/
+*.db
+*.sqlite
+*.sqlite3
+*.log
+.DS_Store

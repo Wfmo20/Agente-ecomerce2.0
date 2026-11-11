@@ -1,0 +1,95 @@
+"""Agente router del chat de un ecommerce: decide si el mensaje va a preventa, postventa o generica."""
+import os
+from pathlib import Path
+from typing import Annotated, Literal, TypedDict
+
+from dotenv import load_dotenv
+from langchain_core.messages import AIMessage, AnyMessage, HumanMessage, SystemMessage
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import END, START, StateGraph
+from langgraph.graph.message import add_messages
+from pydantic import BaseModel, Field
+
+from src.router import prompts
+
+# Solo el .env de la raíz del proyecto (sin buscar en carpetas superiores).
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+
+MODELO = os.environ.get("MODELO", "gemini-3.5-flash-lite")
+
+
+class Decision(BaseModel):
+    ruta: Literal["preventa", "postventa", "generica"] = Field(description="A qué agente va el mensaje.")
+    motivo: str = Field(description="Una frase: por qué esa ruta.")
+
+
+class Estado(TypedDict, total=False):
+    mensaje: str
+    ruta: str
+    motivo: str
+    respuesta: str
+    messages: Annotated[list[AnyMessage], add_messages]
+
+
+_llm = None
+
+
+def _clasificador():
+    """El modelo se crea al primer uso, así --diagrama funciona sin GOOGLE_API_KEY."""
+    global _llm
+    if _llm is None:
+        _llm = ChatGoogleGenerativeAI(model=MODELO, temperature=0).with_structured_output(Decision)
+    return _llm
+
+
+def router(estado: Estado) -> dict:
+    historial = estado.get("messages", [])
+    decision = _clasificador().invoke(
+        [SystemMessage(prompts.ROUTER), *historial, HumanMessage(estado["mensaje"])]
+    )
+    return {
+        "ruta": decision.ruta,
+        "motivo": decision.motivo,
+        "messages": [HumanMessage(estado["mensaje"])],
+    }
+
+
+def _responder(texto: str) -> dict:
+    return {"respuesta": texto, "messages": [AIMessage(texto)]}
+
+
+def agente_preventa(estado: Estado) -> dict:
+    return _responder(prompts.AGENTE_PREVENTA.format(mensaje=estado["mensaje"]))
+
+
+def agente_postventa(estado: Estado) -> dict:
+    return _responder(prompts.AGENTE_POSTVENTA.format(mensaje=estado["mensaje"]))
+
+
+def respuesta_generica(estado: Estado) -> dict:
+    return _responder(prompts.RESPUESTA_GENERICA)
+
+
+DESTINOS = {
+    "preventa": "agente_preventa",
+    "postventa": "agente_postventa",
+    "generica": "respuesta_generica",
+}
+
+
+def elegir_destino(estado: Estado) -> str:
+    return DESTINOS[estado["ruta"]]
+
+
+constructor = StateGraph(Estado)
+constructor.add_node("router", router)
+constructor.add_node("agente_preventa", agente_preventa)
+constructor.add_node("agente_postventa", agente_postventa)
+constructor.add_node("respuesta_generica", respuesta_generica)
+constructor.add_edge(START, "router")
+constructor.add_conditional_edges("router", elegir_destino, list(DESTINOS.values()))
+for nodo in DESTINOS.values():
+    constructor.add_edge(nodo, END)
+
+graph = constructor.compile(checkpointer=MemorySaver())
