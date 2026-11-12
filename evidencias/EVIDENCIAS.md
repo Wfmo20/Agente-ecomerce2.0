@@ -40,5 +40,7 @@ Archivos:
 | # | Entorno y fecha | Solicitud | Resultado esperado | Resultado obtenido | Observaciones |
 |---|---|---|---|---|---|
 | R1 | RENDER · 2026-11-11 | `GET /health` | 200 | 200 `{"ok":true,"modelo":"gemini-3.5-flash-lite"}` | https://agente-ecomerce2-0.onrender.com |
-| R2 | RENDER · 2026-11-11 | `setWebhook` + `getWebhookInfo` | Webhook en `…/telegram`, sin errores | "Webhook was set", 0 pendientes, sin errores | Versión anterior (agentes cascarón) |
-| R3 | RENDER · _fecha_ | Mensajes al bot desplegado | Igual que T1–T5, visibles en **Logs** de Render | _pendiente_ | Tras desplegar esta versión |
+| R2 | RENDER · 2026-11-12 | `/chat` sin clave y con una clave revocada | 401 | 401 en ambos casos | Acceso rechazado (la clave anterior se rotó) |
+| R3 | RENDER · 2026-11-12 | `/chat` con `X-API-Key` vigente: "¿cuánto cuesta el envío a Valparaíso?" | preventa; $4.990, 2 a 3 días hábiles | 200; preventa; `costo_envio(ciudad='Valparaíso')`; "$4.990… 2 a 3 días hábiles… gratis… $49.990" | Acceso permitido, entorno remoto |
+| R4 | RENDER · 2026-11-12 | `setWebhook` + `getWebhookInfo` | Webhook en `…/telegram`, sin errores | "Webhook was set", 0 pendientes, sin errores | — |
+| R5 | RENDER · 2026-11-12 | Mensajes al bot desplegado (@wfmo20_bot) | Respuesta del agente correspondiente; rutas visibles en **Logs** de Render | El bot respondió desde Render; `getWebhookInfo` sin errores ni pendientes | Funciona sin el computador del estudiante. Capturas del chat y de Logs |
