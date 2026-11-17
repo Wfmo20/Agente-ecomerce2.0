@@ -1,0 +1,429 @@
+{
+  "name": "Ecommerce · Telegram con voz → /chat",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "d5be765c-9a82-421a-bb64-01b6d35118ee",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "e48ec4cb-2dd7-42df-8804-d669e9664299"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Chats que pueden usar el bot (mismos chat_id que TELEGRAM_ALLOWED_IDS). Separar con coma.\nconst AUTORIZADOS = ['PEGA_AQUI_TU_CHAT_ID'];\n\nconst mensaje = $json.message || {};\nconst chat_id = String((mensaje.chat || {}).id || '');\nlet tipo = 'otro';                       // stickers, fotos, etc.: se ignoran\nif (!AUTORIZADOS.includes(chat_id)) tipo = 'no_autorizado';\nelse if (mensaje.voice || mensaje.audio) tipo = 'voz';\nelse if (mensaje.text) tipo = 'texto';\n\nconst audio = mensaje.voice || mensaje.audio || {};\nreturn {\n  chat_id,\n  tipo,\n  texto: mensaje.text === '/start' ? 'hola' : (mensaje.text || ''),\n  file_id: audio.file_id || '',\n  duracion: audio.duration || 0,\n};",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "01823e47-b1cb-4234-a680-aeb99ac29f64",
+      "name": "Autorizar y clasificar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "2e7871a3-19fb-4eec-9a0f-66ff68ebec38",
+                    "leftValue": "={{ $json.tipo }}",
+                    "rightValue": "texto",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "texto"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a71c94c4-e628-4093-9534-6c3a13a97484",
+                    "leftValue": "={{ $json.tipo }}",
+                    "rightValue": "voz",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "voz"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "dea64ae9-2998-4374-a388-1519a6f5782e",
+                    "leftValue": "={{ $json.tipo }}",
+                    "rightValue": "no_autorizado",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "no_autorizado"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0c6396c5-1f37-444e-860e-e25743420110",
+      "name": "Según el tipo",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return { chat_id: $json.chat_id, texto: $json.texto, prefijo: '' };",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "cc6cb479-8142-474f-83f4-b3c162634003",
+      "name": "Texto escrito",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.file_id }}",
+        "download": true,
+        "additionalFields": {}
+      },
+      "id": "92d46052-1721-4bb2-a435-ecc9218b20f4",
+      "name": "Descargar audio",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        700,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pasa el audio descargado a base64 para enviarlo a Gemini (Telegram manda las notas de voz en OGG/Opus).\nconst salida = [];\nfor (let i = 0; i < $input.all().length; i++) {\n  const buffer = await this.helpers.getBinaryDataBuffer(i, 'data');\n  salida.push({ json: {\n    chat_id: $('Autorizar y clasificar').all()[i].json.chat_id,\n    audio_b64: buffer.toString('base64'),\n    mime: 'audio/ogg',\n  } });\n}\nreturn salida;"
+      },
+      "id": "041d3c11-0bff-4012-999f-49cdc105ae30",
+      "name": "Audio a base64",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        920,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ contents: [{ parts: [ { text: 'Transcribe este audio en español, tal cual lo dice la persona. Responde solo con el texto, sin comillas ni comentarios.' }, { inline_data: { mime_type: $json.mime, data: $json.audio_b64 } } ] }] }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "05148541-7f22-4692-99c1-061dc3dac3d9",
+      "name": "Transcribir con Gemini",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1140,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Texto que transcribió Gemini; se muestra al cliente para que vea qué se entendió.\nconst partes = ((($json.candidates || [])[0] || {}).content || {}).parts || [];\nconst texto = partes.map(p => p.text || '').join(' ').trim();\nreturn {\n  chat_id: $('Audio a base64').item.json.chat_id,\n  texto,\n  prefijo: texto ? `🎤 Entendí: «${texto}»\\n\\n` : '',\n};",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "e0df387c-9e51-4330-a4d5-f09d903a2987",
+      "name": "Texto de la voz",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return { ...$json };",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "6a622b63-61ab-4a2d-9595-04681acae757",
+      "name": "Mensaje para el agente",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1580,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://agente-ecomerce2-0.onrender.com/chat",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ user_id: 'n8n-' + $json.chat_id, texto: $json.texto }) }}",
+        "options": {
+          "timeout": 90000
+        }
+      },
+      "id": "07e8787f-1732-4827-96e3-9dfb285153a0",
+      "name": "Llamar al agente (/chat)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1800,
+        200
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Mensaje para el agente').item.json.chat_id }}",
+        "text": "={{ $('Mensaje para el agente').item.json.prefijo + $json.respuesta }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "45fa63d7-8a1a-4d40-925e-81e204425ed3",
+      "name": "Responder",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2040,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Mensaje para el agente').item.json.chat_id }}",
+        "text": "={{ $('Mensaje para el agente').item.json.prefijo + 'Tuve un problema para responderte. Intenta de nuevo en unos segundos (si es un audio, que sea corto y claro).' }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "c9551e7a-69e8-4946-a755-dfb3abdde11e",
+      "name": "Responder error",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2040,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "=No estás autorizado para usar este bot. Tu chat_id es {{ $json.chat_id }}: pídele al administrador que lo agregue.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "32da4f41-ecb8-4cc5-926c-24d51125d5b6",
+      "name": "Responder no autorizado",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        700,
+        500
+      ]
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Autorizar y clasificar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Autorizar y clasificar": {
+      "main": [
+        [
+          {
+            "node": "Según el tipo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Según el tipo": {
+      "main": [
+        [
+          {
+            "node": "Texto escrito",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Descargar audio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder no autorizado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Texto escrito": {
+      "main": [
+        [
+          {
+            "node": "Mensaje para el agente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar audio": {
+      "main": [
+        [
+          {
+            "node": "Audio a base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audio a base64": {
+      "main": [
+        [
+          {
+            "node": "Transcribir con Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribir con Gemini": {
+      "main": [
+        [
+          {
+            "node": "Texto de la voz",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Texto de la voz": {
+      "main": [
+        [
+          {
+            "node": "Mensaje para el agente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje para el agente": {
+      "main": [
+        [
+          {
+            "node": "Llamar al agente (/chat)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Llamar al agente (/chat)": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

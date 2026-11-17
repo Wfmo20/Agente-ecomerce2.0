@@ -52,6 +52,7 @@ tests/             test_api.py · test_tools.py (sin modelo) · test_postgres.py
                    test_router.py · test_agentes.py (con modelo)
 evidencias/        EVIDENCIAS.md + registros y capturas de la ejecución local
 bruno/             colección de requests (local ↔ Render)
+n8n/               flujo de Telegram con voz para n8n en la nube (telegram_voz.json + README)
 Procfile · .python-version · requirements.txt        ← despliegue (requirements-dev.txt: pytest)
 ```
 
@@ -245,6 +246,11 @@ En el plan Free la app se duerme tras ~15 min sin uso: el primer mensaje puede t
 **Para otra plataforma (Heroku, etc.):** arranque `uvicorn api.app:app --host 0.0.0.0 --port $PORT`; puerto,
 URL, secretos y `DATABASE_URL` se configuran por variables de entorno; los datos que se conservan están en
 Postgres; servicios externos: Gemini y Telegram.
+
+## 7. Canal con voz en n8n (opcional)
+
+Un segundo bot de Telegram atendido por **n8n en la nube** acepta texto y notas de voz: la voz se transcribe con
+Gemini y el texto va a `/chat` en Render con `X-API-Key`. Instrucciones en [`n8n/README.md`](n8n/README.md).
 
 Bruno (opcional): Open Collection → carpeta `bruno/` → entorno `local` o `render` → en el entorno completa la
 variable secreta `apiKey` con tu `API_KEY` (Bruno no la guarda en los archivos).
