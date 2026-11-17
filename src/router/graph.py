@@ -57,8 +57,10 @@ def _agente(nombre: str, prompt: str, herramientas: list):
 
 def router(estado: Estado) -> dict:
     historial = estado.get("messages", [])[-HISTORIAL_MAX:]
+    # "ruta" viene del checkpoint: es la del mensaje anterior. Ayuda con respuestas cortas ("la negra", "4521").
+    sistema = prompts.ROUTER + (prompts.RUTA_ANTERIOR.format(ruta=estado["ruta"]) if estado.get("ruta") else "")
     decision = _modelo().with_structured_output(Decision).invoke(
-        [SystemMessage(prompts.ROUTER), *historial, HumanMessage(estado["mensaje"])]
+        [SystemMessage(sistema), *historial, HumanMessage(estado["mensaje"])]
     )
     return {
         "ruta": decision.ruta,
@@ -90,7 +92,10 @@ def agente_postventa(estado: Estado) -> dict:
 
 
 def respuesta_generica(estado: Estado) -> dict:
-    return {"respuesta": prompts.RESPUESTA_GENERICA, "herramientas": [], "messages": [AIMessage(prompts.RESPUESTA_GENERICA)]}
+    prompt = prompts.RESPUESTA_GENERICA.format(tienda=tools.TIENDA)
+    texto = _modelo().invoke([SystemMessage(prompt), *estado["messages"][-HISTORIAL_MAX:]]).text.strip()
+    texto = texto or "¡Hola! Este chat es para ayudarte con la tienda: productos, envíos y tus pedidos. ¿En qué te ayudo?"
+    return {"respuesta": texto, "herramientas": [], "messages": [AIMessage(texto)]}
 
 
 DESTINOS = {
@@ -114,4 +119,18 @@ constructor.add_conditional_edges("router", elegir_destino, list(DESTINOS.values
 for nodo in DESTINOS.values():
     constructor.add_edge(nodo, END)
 
-graph = constructor.compile(checkpointer=MemorySaver())
+
+def compilar(checkpointer=None):
+    """Compila el grafo. La API lo hace al arrancar (lifespan) con el checkpointer de memoria.py."""
+    return constructor.compile(checkpointer=checkpointer or MemorySaver())
+
+
+def __getattr__(nombre: str):
+    """`graph` (main.py, scripts y pruebas) se compila recién cuando se pide, no al importar el módulo."""
+    if nombre == "graph":
+        if "graph" not in _cache:
+            from src.router.memoria import crear_checkpointer
+
+            _cache["graph"] = compilar(crear_checkpointer()[0])
+        return _cache["graph"]
+    raise AttributeError(nombre)

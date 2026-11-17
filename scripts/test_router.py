@@ -1,4 +1,4 @@
-"""Corre los 15 casos de tests/casos_router.json y muestra esperado vs obtenido.
+"""Corre los casos de tests/casos_router.json y muestra esperado vs obtenido.
 
     python scripts/test_router.py
 """
@@ -18,15 +18,19 @@ print(f"{'mensaje':<62} {'esperado':<10} {'obtenido':<10}    motivo")
 print("-" * 130)
 fallados = []
 for caso in casos:
+    texto = " → ".join([*caso.get("historial", []), caso["mensaje"]])[-62:]
     try:
-        estado = graph.invoke({"mensaje": caso["mensaje"]}, {"configurable": {"thread_id": str(uuid.uuid4())}})
+        config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+        for previo in caso.get("historial", []):  # respuestas cortas de seguimiento: primero el contexto
+            graph.invoke({"mensaje": previo}, config)
+        estado = graph.invoke({"mensaje": caso["mensaje"]}, config)
         obtenido, motivo = estado["ruta"], estado["motivo"]
     except Exception as error:  # el modelo falló: cuenta como fallo, sin cortar la tabla
         obtenido, motivo = "ERROR", f"{type(error).__name__}: {error}"[:120]
     ok = obtenido == caso["esperado"]
     if not ok:
         fallados.append((caso, obtenido))
-    print(f"{caso['mensaje']:<62} {caso['esperado']:<10} {obtenido:<10} {'✔' if ok else '✘'}  {motivo}")
+    print(f"{texto:<62} {caso['esperado']:<10} {obtenido:<10} {'✔' if ok else '✘'}  {motivo}")
 
 aciertos = len(casos) - len(fallados)
 print("-" * 130)

@@ -14,7 +14,7 @@ api/app.py                ← la API (FastAPI)
 main.py                   ← punto de entrada por consola
 scripts/                  ← scripts sueltos
 tests/                    ← pruebas (pytest)
-Procfile · .python-version · requirements.txt   ← despliegue en Heroku
+Procfile · .python-version · requirements.txt   ← despliegue en Render
 ```
 
 ## Reglas
@@ -29,11 +29,12 @@ Procfile · .python-version · requirements.txt   ← despliegue en Heroku
 3. **API:** va en `api/app.py` (FastAPI) y se levanta con:
    `uvicorn api.app:app --reload --port 8000`
 4. **Scripts sueltos** en `scripts/`; **pruebas** en `tests/` y se ejecutan con `pytest`.
-5. **Heroku:**
+5. **Render:**
    - `Procfile` con: `web: uvicorn api.app:app --host 0.0.0.0 --port $PORT`
    - `.python-version` con: `3.12`
    - `requirements.txt` **siempre actualizado**: después de instalar algo, ejecutar
      `.venv/bin/python -m pip freeze > requirements.txt` (Windows: `.venv\Scripts\python.exe -m pip freeze > requirements.txt`)
+     y quitar `pytest`, `pluggy` e `iniconfig`: las herramientas de desarrollo van en `requirements-dev.txt`.
 6. **`.gitignore`** con: `.env`, `.venv`, `__pycache__` y `.langgraph_api`.
 
 ## Variables de entorno (`.env`)
@@ -46,4 +47,5 @@ Procfile · .python-version · requirements.txt   ← despliegue en Heroku
 | `TELEGRAM_TOKEN` | Token del bot, lo da BotFather |
 | `TELEGRAM_ALLOWED_IDS` | `chat_id` de Telegram autorizados, separados por coma |
 | `TELEGRAM_SECRET` | Secreto que Telegram manda en cada webhook para que la API lo verifique |
+| `DATABASE_URL` | Postgres: memoria, catálogo y solicitudes (vacío = RAM + JSON de prueba) |
 | `PUBLIC_URL` | URL https pública (la de Render; vacío hasta desplegar) |

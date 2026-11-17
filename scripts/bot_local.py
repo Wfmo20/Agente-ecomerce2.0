@@ -9,6 +9,7 @@ Detener: Ctrl+C. Para volver a Render después: python scripts/set_webhook.py
 import logging
 import os
 import sys
+import time
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
@@ -30,16 +31,28 @@ if not token:
 API = f"https://api.telegram.org/bot{token}"
 
 
+class ErrorTelegram(Exception):
+    pass
+
+
 def llamar(metodo: str, **params) -> dict:
     r = httpx.post(f"{API}/{metodo}", json=params, timeout=params.get("timeout", 0) + 15)
-    datos = r.json()
+    try:
+        datos = r.json()
+    except ValueError:  # ej. un 502 de Telegram con HTML
+        raise ErrorTelegram(f"{metodo}: HTTP {r.status_code} sin JSON")
     if not datos.get("ok"):
-        sys.exit(f"Telegram respondió error en {metodo}: {datos.get('error_code')} {datos.get('description')}")
+        raise ErrorTelegram(f"{metodo}: {datos.get('error_code')} {datos.get('description')}")
     return datos["result"]
 
 
-bot = llamar("getMe")
-webhook = llamar("getWebhookInfo").get("url")
+try:
+    bot = llamar("getMe")
+    webhook = llamar("getWebhookInfo").get("url")
+except (httpx.HTTPError, ErrorTelegram) as e:
+    sys.exit(f"No se pudo conectar con Telegram ({e}). Revisa TELEGRAM_TOKEN y la conexión.")
+
+
 if webhook:
     if "--quitar-webhook" not in sys.argv:
         sys.exit(f"El bot @{bot['username']} tiene un webhook activo ({webhook}).\n"
@@ -54,12 +67,18 @@ if not autorizados:
     print("Aviso: TELEGRAM_ALLOWED_IDS está vacío; todos los chats serán rechazados (el bot les dirá su chat_id).")
 
 desde = 0
+pausa = 1
 try:
     while True:
         try:
             updates = llamar("getUpdates", offset=desde, timeout=30, allowed_updates=["message"])
-        except httpx.HTTPError:
-            log.error("Sin conexión con Telegram; reintento…")
+            pausa = 1
+        except (httpx.HTTPError, ErrorTelegram) as e:
+            # Red caída, 5xx o 409 (otro proceso leyendo el mismo bot): se espera y se reintenta, sin salir
+            # ni saturar la CPU. La pausa crece hasta 5 s mientras siga fallando.
+            log.error("Error con Telegram (%s); reintento en %s s…", type(e).__name__ if isinstance(e, httpx.HTTPError) else e, pausa)
+            time.sleep(pausa)
+            pausa = min(pausa * 2, 5)
             continue
         for update in updates:
             desde = update["update_id"] + 1

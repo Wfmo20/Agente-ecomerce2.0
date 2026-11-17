@@ -1,4 +1,6 @@
 """Pruebas de la API sin llamar al modelo ni a Telegram (el grafo y sendMessage se reemplazan)."""
+import itertools
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -28,6 +30,7 @@ def cliente(monkeypatch):
     monkeypatch.setenv("TELEGRAM_SECRET", SECRETO)
     monkeypatch.setenv("API_KEY", CLAVE)
     monkeypatch.setenv("TELEGRAM_ALLOWED_IDS", f"{AUTORIZADO}, 222")
+    app_mod._vistos.clear()
     enviados = []
     monkeypatch.setattr(app_mod, "enviar_a_telegram", lambda chat_id, texto: enviados.append((chat_id, texto)))
     with TestClient(app_mod.app) as c:
@@ -36,8 +39,11 @@ def cliente(monkeypatch):
         yield c
 
 
-def update(texto="mi pedido 4521 llegó roto", chat_id=AUTORIZADO):
-    return {"update_id": 1, "message": {"chat": {"id": chat_id}, "text": texto}}
+_update_ids = itertools.count(1)
+
+
+def update(texto="mi pedido 4521 llegó roto", chat_id=AUTORIZADO, update_id=None):
+    return {"update_id": update_id or next(_update_ids), "message": {"chat": {"id": chat_id}, "text": texto}}
 
 
 TG = {"X-Telegram-Bot-Api-Secret-Token": SECRETO}
@@ -46,7 +52,18 @@ API = {"X-API-Key": CLAVE}
 
 def test_health(cliente):
     r = cliente.get("/health")
-    assert r.status_code == 200 and r.json()["ok"] is True
+    assert r.status_code == 200 and r.json()["ok"] is True and r.json()["memoria"] == "ram"
+
+
+def test_chat_no_accede_a_conversaciones_de_telegram(cliente):
+    cliente.post("/chat", json={"user_id": f"telegram-{AUTORIZADO}", "texto": "hola"}, headers=API)
+    assert cliente.app.state.grafo.llamadas[-1][1]["configurable"]["thread_id"] == f"api-telegram-{AUTORIZADO}"
+
+
+def test_webhook_ignora_update_repetido(cliente):
+    for _ in range(2):  # Telegram reintenta el mismo update si la respuesta tarda (arranque en frío)
+        assert cliente.post("/telegram", json=update(update_id=777), headers=TG).status_code == 200
+    assert len(cliente.app.state.grafo.llamadas) == 1 and len(cliente.enviados) == 1
 
 
 # ---------- /chat ----------

@@ -1,34 +1,91 @@
 """Herramientas de los agentes de preventa y postventa.
 
-Leen datos de PRUEBA desde src/router/datos/ (catálogo y pedidos ficticios). Las solicitudes de
-devolución, cambio o reclamo se guardan solo en memoria: no envían correos ni tocan sistemas reales.
+Con DATABASE_URL, el catálogo (productos y stock) se lee de Postgres con consultas parametrizadas y las
+solicitudes de postventa se guardan en la tabla `solicitudes`. Sin DATABASE_URL se usan los datos de PRUEBA
+de src/router/datos/ y las solicitudes quedan en memoria. Envío, promociones y pagos vienen siempre de
+catalogo.json, y los pedidos de pedidos.json (ficticios). No se envían correos ni se tocan sistemas reales.
 """
+import itertools
 import json
-import unicodedata
 from datetime import date, timedelta
 from pathlib import Path
 
+import psycopg
 from langchain_core.tools import tool
+
+from src.router import db
 
 DATOS = Path(__file__).resolve().parent / "datos"
 CATALOGO = json.loads((DATOS / "catalogo.json").read_text(encoding="utf-8"))
 _PEDIDOS = json.loads((DATOS / "pedidos.json").read_text(encoding="utf-8"))
 PLAZO_DEVOLUCION = _PEDIDOS["plazo_devolucion_dias"]
-SOLICITUDES: list[dict] = []  # se pierden al reiniciar (son de prueba)
+TIENDA = (DATOS / "tienda.md").read_text(encoding="utf-8")  # única fuente de la respuesta genérica
+SOLICITUDES: list[dict] = []  # solo sin DATABASE_URL (se pierden al reiniciar)
+_numero_caso = itertools.count(1)  # sin DATABASE_URL: seguro entre hilos, a diferencia de len(SOLICITUDES) + 1
+
+CATALOGO_NO_DISPONIBLE = {"error": "Catálogo no disponible en este momento. Pide al cliente que intente de nuevo "
+                                   "en unos minutos; no inventes productos, precios ni stock."}
+_norm = db.norm
 
 
-def _norm(texto: str) -> str:
-    """Minúsculas y sin tildes, para comparar 'Valparaíso' con 'valparaiso'."""
-    sin_tildes = unicodedata.normalize("NFKD", texto).encode("ascii", "ignore").decode()
-    return " ".join(sin_tildes.lower().split())
+def _singular(palabra: str) -> str:
+    """Quita solo la "s" del plural ("poleras" → "polera"), no todas las finales."""
+    return palabra[:-1] if palabra.endswith("s") else palabra
 
 
 def clp(monto: int) -> str:
     return "$" + f"{monto:,}".replace(",", ".")
 
 
+# ---------- Acceso al catálogo (Postgres o JSON) ----------
+# Las funciones devuelven productos con la misma forma que catalogo.json:
+# {"id", "nombre", "categoria", "precio", "stock": {color: {talla: unidades}}}.
+# Si Postgres no responde lanzan psycopg.Error (PoolTimeout también lo es) y la herramienta lo informa.
+
+def _like(palabra: str) -> str:
+    """Patrón LIKE para una palabra del usuario, escapando sus comodines (% y _)."""
+    return "%" + palabra.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+
+
+def _con_stock(conn, filas: list[dict]) -> list[dict]:
+    productos = {f["id"]: {**f, "stock": {}} for f in filas}
+    if productos:
+        for s in conn.execute("SELECT producto_id, color, talla, unidades FROM stock WHERE producto_id = ANY(%s) "
+                              "ORDER BY producto_id, orden", (list(productos),)):
+            productos[s["producto_id"]]["stock"].setdefault(s["color"], {})[s["talla"]] = s["unidades"]
+    return list(productos.values())
+
+
+def _buscar(palabras: list[str]) -> list[dict]:
+    if not db.activa():
+        return [p for p in CATALOGO["productos"]
+                if all(w in _norm(f"{p['nombre']} {p['categoria']} {' '.join(p['stock'])}") for w in palabras)]
+    with db.pool().connection() as conn:
+        filas = conn.execute("SELECT id, nombre, categoria, precio FROM productos WHERE busqueda LIKE ALL(%s) "
+                             "ORDER BY id", ([_like(w) for w in palabras],)).fetchall()
+        return _con_stock(conn, filas)
+
+
 def _producto(producto_id: str) -> dict | None:
-    return next((p for p in CATALOGO["productos"] if p["id"].upper() == producto_id.strip().upper()), None)
+    if not db.activa():
+        return next((p for p in CATALOGO["productos"] if p["id"].upper() == producto_id.strip().upper()), None)
+    with db.pool().connection() as conn:
+        filas = conn.execute("SELECT id, nombre, categoria, precio FROM productos WHERE id = upper(%s)",
+                             (producto_id.strip(),)).fetchall()
+        return next(iter(_con_stock(conn, filas)), None)
+
+
+def _guardar_solicitud(caso: dict) -> str:
+    """Guarda la solicitud y devuelve su número de caso (SOL-0001…)."""
+    if not db.activa():
+        numero = next(_numero_caso)
+        SOLICITUDES.append(caso)
+    else:
+        with db.pool().connection() as conn:
+            numero = conn.execute("INSERT INTO solicitudes (tipo, pedido, producto, motivo) VALUES (%s, %s, %s, %s) "
+                                  "RETURNING id", (caso["tipo"], caso["pedido"], caso["producto"], caso["motivo"])
+                                  ).fetchone()["id"]
+    return f"SOL-{numero:04d}"
 
 
 def _pedido(numero: str) -> dict | None:
@@ -42,21 +99,25 @@ def _pedido(numero: str) -> dict | None:
 def buscar_productos(consulta: str) -> list[dict]:
     """Busca productos del catálogo por nombre o categoría (ej. "polera", "zapatillas running", "jeans").
     Devuelve id, nombre, precio en CLP y los colores disponibles. Usa "" para listar todo el catálogo."""
-    palabras = [_norm(p).rstrip("s") for p in consulta.split() if len(p) > 2]
-    resultado = []
-    for p in CATALOGO["productos"]:
-        texto = _norm(f"{p['nombre']} {p['categoria']} {' '.join(p['stock'])}")
-        if all(w in texto for w in palabras):
-            resultado.append({"id": p["id"], "nombre": p["nombre"], "precio": clp(p["precio"]),
-                              "colores": list(p["stock"])})
-    return resultado
+    palabras = [_singular(_norm(p)) for p in consulta.split() if len(p) > 2]
+    try:
+        encontrados = _buscar(palabras)
+    except psycopg.Error:
+        db.log.exception("buscar_productos: Postgres no respondió")
+        return [CATALOGO_NO_DISPONIBLE]
+    return [{"id": p["id"], "nombre": p["nombre"], "precio": clp(p["precio"]), "colores": list(p["stock"])}
+            for p in encontrados]
 
 
 @tool
 def consultar_stock(producto_id: str, color: str = "", talla: str = "") -> dict:
     """Stock de un producto (usa el id de buscar_productos, ej. "POL-001"). Opcional: color y talla.
     Devuelve unidades por color y talla; 0 significa agotado."""
-    p = _producto(producto_id)
+    try:
+        p = _producto(producto_id)
+    except psycopg.Error:
+        db.log.exception("consultar_stock: Postgres no respondió")
+        return CATALOGO_NO_DISPONIBLE
     if p is None:
         return {"error": f"No existe el producto {producto_id}."}
     stock = p["stock"]
@@ -130,7 +191,7 @@ def _item_del_pedido(pedido: dict, producto: str) -> list[dict]:
     por_id = [i for i in pedido["items"] if i["id"].upper() == producto.strip().upper()]
     if por_id:
         return por_id
-    palabras = [_norm(w).rstrip("s") for w in producto.replace("(", " ").replace(")", " ").replace(",", " ").split()
+    palabras = [_singular(_norm(w)) for w in producto.replace("(", " ").replace(")", " ").replace(",", " ").split()
                 if len(w) > 2 and _norm(w) not in _VACIAS]
     return [i for i in pedido["items"]
             if palabras and all(w in _norm(f"{i['nombre']} {i['color']} {i['talla']}") for w in palabras)]
@@ -141,7 +202,7 @@ def registrar_solicitud(numero_pedido: str, tipo: str, producto: str, motivo: st
     """Registra una solicitud de postventa. tipo: "devolucion", "cambio" o "reclamo" (producto dañado,
     cobro duplicado, etc.). producto: id ("ZAP-010") o nombre del producto del pedido ("zapatillas").
     Llamar SOLO cuando el cliente ya dio número de pedido, producto y motivo. Devuelve el número de caso."""
-    tipo = _norm(tipo).replace("ó", "o")
+    tipo = _norm(tipo)
     if tipo not in {"devolucion", "cambio", "reclamo"}:
         return {"error": "tipo debe ser devolucion, cambio o reclamo."}
     p = _pedido(numero_pedido)
@@ -159,10 +220,15 @@ def registrar_solicitud(numero_pedido: str, tipo: str, producto: str, motivo: st
         if p["hace_dias"] > PLAZO_DEVOLUCION:
             return {"error": f"Fuera de plazo: el pedido se entregó hace {p['hace_dias']} días y el plazo es de "
                              f"{PLAZO_DEVOLUCION} días. Puede registrar un reclamo si el producto tiene una falla."}
-    caso = {"caso": f"SOL-{len(SOLICITUDES) + 1:04d}", "tipo": tipo, "pedido": p["numero"],
-            "producto": item["nombre"], "motivo": motivo, "estado": "registrada",
-            "siguiente_paso": "Un ejecutivo contactará al cliente en un máximo de 2 días hábiles con las instrucciones."}
-    SOLICITUDES.append(caso)
+    caso = {"tipo": tipo, "pedido": p["numero"], "producto": item["nombre"], "motivo": motivo}
+    try:
+        numero = _guardar_solicitud(caso)
+    except psycopg.Error:
+        db.log.exception("registrar_solicitud: Postgres no respondió")
+        return {"error": "No se pudo registrar la solicitud ahora (sistema no disponible). Pide al cliente que "
+                         "intente de nuevo en unos minutos; no inventes un número de caso."}
+    caso.update(caso=numero, estado="registrada",
+                siguiente_paso="Un ejecutivo contactará al cliente en un máximo de 2 días hábiles con las instrucciones.")
     return caso
 
 

@@ -15,5 +15,9 @@
   {"mensaje": "buenas tardes", "esperado": "generica"},
   {"mensaje": "¿qué hora es en Tokio?", "esperado": "generica"},
   {"mensaje": "¿va a llover mañana en Santiago?", "esperado": "generica"},
-  {"mensaje": "cuéntame un chiste", "esperado": "generica"}
+  {"mensaje": "cuéntame un chiste", "esperado": "generica"},
+
+  {"historial": ["¿tienen poleras deportivas?"], "mensaje": "la negra en talla M", "esperado": "preventa"},
+  {"historial": ["quiero comprar zapatillas para correr"], "mensaje": "el segundo", "esperado": "preventa"},
+  {"historial": ["me llegó roto un producto y quiero devolverlo"], "mensaje": "4521", "esperado": "postventa"}
 ]

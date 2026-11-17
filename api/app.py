@@ -6,6 +6,8 @@ Documentación interactiva:  http://localhost:8000/docs
 import hmac
 import logging
 import os
+import threading
+from collections import deque
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Literal
@@ -52,12 +54,13 @@ TAGS = [
 class HealthResponse(BaseModel):
     ok: bool = Field(description="True si la API está funcionando.", examples=[True])
     modelo: str = Field(description="Modelo de lenguaje que usa el router.", examples=["gemini-3.5-flash-lite"])
+    memoria: str = Field(description="Dónde se guardan las conversaciones: postgres o ram.", examples=["postgres"])
 
 
 class ChatRequest(BaseModel):
     user_id: str = Field(
         min_length=1,
-        description="Identificador del cliente. Se usa como thread_id: mismo user_id = misma conversación.",
+        description="Identificador del cliente. Mismo user_id = misma conversación (thread_id `api-<user_id>`).",
         examples=["cliente-123"],
     )
     texto: str = Field(
@@ -118,12 +121,18 @@ def chats_autorizados() -> set[str]:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # El grafo se compila UNA sola vez, al arrancar la app (no en cada request).
-    from src.router.graph import graph
+    # El grafo se compila UNA sola vez, al arrancar la app (no en cada request ni al importar).
+    from src.router.graph import compilar
+    from src.router.memoria import crear_checkpointer
 
-    app.state.grafo = graph
-    log.info("Grafo router listo (modelo %s)", MODELO)
+    checkpointer, app.state.memoria = crear_checkpointer()
+    app.state.grafo = compilar(checkpointer)
+    log.info("Grafo router listo (modelo %s, memoria en %s)", MODELO, app.state.memoria)
     yield
+    if app.state.memoria == "postgres":
+        from src.router import db
+
+        db.cerrar()
 
 
 app = FastAPI(
@@ -136,8 +145,8 @@ app = FastAPI(
 
 
 @app.get("/health", tags=["salud"], response_model=HealthResponse, summary="Estado de la API")
-def health() -> HealthResponse:
-    return HealthResponse(ok=True, modelo=MODELO)
+def health(request: Request) -> HealthResponse:
+    return HealthResponse(ok=True, modelo=MODELO, memoria=request.app.state.memoria)
 
 
 @app.post(
@@ -155,7 +164,8 @@ def health() -> HealthResponse:
     },
 )
 def chat(pedido: ChatRequest, request: Request) -> ChatResponse:
-    config = {"configurable": {"thread_id": pedido.user_id}}
+    # Prefijo "api-": con la API key no se puede leer ni seguir una conversación de Telegram ("telegram-<chat_id>").
+    config = {"configurable": {"thread_id": f"api-{pedido.user_id}"}}
     try:
         estado = request.app.state.grafo.invoke({"mensaje": pedido.texto}, config)
     except Exception:
@@ -190,12 +200,31 @@ MUY_LARGO = f"Tu mensaje es muy largo. Escríbeme tu consulta en menos de {LARGO
 FALLA_MODELO = "Tuve un problema para responderte (el modelo no respondió). Intenta de nuevo en unos segundos."
 
 
+_vistos: deque[int] = deque(maxlen=1000)  # últimos update_id atendidos
+_vistos_lock = threading.Lock()
+
+
+def ya_atendido(update_id: int | None) -> bool:
+    """True si el update ya se atendió. Telegram reintenta el webhook si tardamos (ej. arranque en frío de
+    Render), y sin esto se responde dos veces o se registra dos veces la misma solicitud."""
+    if update_id is None:
+        return False
+    with _vistos_lock:
+        if update_id in _vistos:
+            return True
+        _vistos.append(update_id)
+        return False
+
+
 def atender_telegram(grafo, update: dict[str, Any], enviar=None) -> None:
     """Procesa un update de Telegram: autoriza el chat, pasa el texto por el router y contesta.
 
     La usan el webhook (/telegram) y el modo local por polling (scripts/bot_local.py).
     """
     enviar = enviar or enviar_a_telegram
+    if ya_atendido(update.get("update_id")):
+        log.info("Update %s repetido: se ignora", update.get("update_id"))
+        return
     mensaje = update.get("message") or {}
     texto = mensaje.get("text")
     chat_id = (mensaje.get("chat") or {}).get("id")

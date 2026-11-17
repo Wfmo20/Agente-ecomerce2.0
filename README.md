@@ -3,12 +3,13 @@
 Taller de implementación (Agentic AI · Curso 2). Chat de atención de una tienda online de ropa y zapatillas:
 el cliente escribe por **Telegram** (o por la **API FastAPI**), un **router** (LangGraph + Gemini) decide qué
 agente lo atiende y ese agente responde con **herramientas sobre un catálogo y pedidos de prueba**.
+Con `DATABASE_URL`, la memoria de las conversaciones, el catálogo y las solicitudes viven en **Postgres**.
 
 | Ruta | Cuándo | Qué hace |
 |---|---|---|
 | `preventa` | Quiere comprar: productos, precios, tallas, stock, envío, promociones, pagos. | Agente con herramientas `buscar_productos`, `consultar_stock`, `costo_envio`, `promociones_y_pagos`. |
 | `postventa` | Ya compró: seguimiento, devolución, cambio, reclamo, producto dañado. | Agente con `consultar_pedido` y `registrar_solicitud` (plazo de devolución de 30 días). |
-| `generica` | Saludos o temas ajenos a la tienda (clima, hora, chistes). | Respuesta fija, sin usar el modelo. |
+| `generica` | Saludos, preguntas sobre la tienda o temas ajenos (clima, hora, chistes). | Gemini con `datos/tienda.md` como única fuente; no sale de su papel ante temas ajenos o intentos de *prompt injection*. |
 
 ## Integrantes y aportes
 
@@ -33,19 +34,25 @@ grafo.
 ```
 Telegram ──► /telegram (webhook, Render)  ─┐
          └─► scripts/bot_local.py (LOCAL) ─┼─► autorización ─► router ─┬─► agente_preventa  ─► tools ─► catalogo.json
-curl/Swagger ─► /chat (X-API-Key) ─────────┘                          ├─► agente_postventa ─► tools ─► pedidos.json
-                                                                      └─► respuesta_generica
+curl/Swagger ─► /chat (X-API-Key) ─────────┘          ▲               ├─► agente_postventa ─► tools ─► pedidos.json
+                                                       │               │                              └► solicitudes (Postgres)
+                                    memoria (Postgres o RAM)           └─► respuesta_generica ─► tienda.md
 ```
 
+El catálogo (productos y stock) sale de Postgres si hay `DATABASE_URL` y, si no, de `catalogo.json`. Envío,
+promociones y pagos vienen de `catalogo.json`; los pedidos, de `pedidos.json`.
+
 ```
-src/router/        graph.py · prompts.py · tools.py · datos/ (catálogo y pedidos de PRUEBA)
+src/router/        graph.py · prompts.py · tools.py · db.py (Postgres) · memoria.py (checkpointer)
+                   datos/ (catálogo, pedidos de PRUEBA y tienda.md)
 api/app.py         API FastAPI (/health, /chat, /telegram) + atención de Telegram
 main.py            ejecutar el agente por consola
 scripts/           bot_local.py · set_webhook.py · webhook_info.py · probar_router.py · test_router.py
-tests/             test_api.py · test_tools.py (sin modelo) · test_router.py · test_agentes.py (con modelo)
+tests/             test_api.py · test_tools.py (sin modelo) · test_postgres.py (con Postgres) ·
+                   test_router.py · test_agentes.py (con modelo)
 evidencias/        EVIDENCIAS.md + registros y capturas de la ejecución local
 bruno/             colección de requests (local ↔ Render)
-Procfile · .python-version · requirements.txt        ← despliegue
+Procfile · .python-version · requirements.txt        ← despliegue (requirements-dev.txt: pytest)
 ```
 
 ## 1. Qué se prepara a mano
@@ -69,7 +76,7 @@ Requisitos: Python 3.12.
 ```bash
 python3.12 -m venv .venv                 # Windows: py -3.12 -m venv .venv
 source .venv/bin/activate                # Windows: .venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+pip install -r requirements-dev.txt     # dependencias de la app + pytest
 cp .env.example .env                     # Windows: copy .env.example .env
 ```
 
@@ -83,6 +90,7 @@ Completa `.env` (nunca lo subas al repositorio; el proyecto lee **solo** el `.en
 | `TELEGRAM_TOKEN` | Token del bot (BotFather) | Para Telegram |
 | `TELEGRAM_ALLOWED_IDS` | `chat_id` autorizados, separados por coma. Vacío = nadie autorizado | Para Telegram |
 | `TELEGRAM_SECRET` | Secreto del webhook (solo en el despliegue) | Webhook |
+| `DATABASE_URL` | Postgres (`postgresql://usuario:clave@host:5432/base`). Vacío = memoria en RAM y catálogo desde el JSON | No |
 | `PUBLIC_URL` | URL https pública (solo en el despliegue) | Webhook |
 
 ## 3. Iniciar, probar y detener (LOCAL)
@@ -155,12 +163,30 @@ Respuesta: `{"ruta", "motivo", "respuesta", "herramientas"}` (`herramientas` = q
 python main.py router "mi pedido 4530" --saltos      # ruta, motivo, herramientas usadas y respuesta
 python main.py router --diagrama                     # diagrama Mermaid del grafo
 
-pytest -v                         # todo: API, herramientas, router (≥13/15) y agentes con el modelo
+pytest -v                         # todo: API, herramientas, router (≥16/18) y agentes con el modelo
 pytest tests/test_api.py tests/test_tools.py -v      # solo lo que no usa el modelo (sin clave ni internet)
-python scripts/test_router.py     # tabla de los 15 casos del router: esperado vs obtenido
+TEST_DATABASE_URL=postgresql://postgres@localhost:5432/ecommerce_test pytest tests/test_postgres.py -v
+python scripts/test_router.py     # tabla de los casos del router: esperado vs obtenido
 ```
 
-Las pruebas con el modelo se saltan si no hay `GOOGLE_API_KEY`.
+Las pruebas con el modelo se saltan si no hay `GOOGLE_API_KEY`, y las de Postgres si no hay `TEST_DATABASE_URL`
+(usar una base de prueba, no la de Render). Los casos del router incluyen respuestas cortas de seguimiento
+("la negra en talla M", "el segundo", "4521"): el router recibe la ruta anterior y la mantiene si el cliente solo
+contesta lo que se le preguntó.
+
+### 3.4 Postgres en local (opcional)
+
+Sin `DATABASE_URL` todo funciona en RAM. Para probar con Postgres (macOS con Homebrew):
+
+```bash
+brew install postgresql@17 && brew services start postgresql@17
+createdb ecommerce
+# en .env: DATABASE_URL=postgresql://localhost/ecommerce
+```
+
+Al arrancar, la app crea las tablas (`productos`, `stock`, `solicitudes` y las del checkpointer) y carga el
+catálogo desde `catalogo.json` si falta algún producto (no pisa lo editado en la base). `/health` muestra
+`"memoria": "postgres"` o `"ram"`.
 
 ## 4. Seguridad y efectos reales
 
@@ -170,17 +196,25 @@ Las pruebas con el modelo se saltan si no hay `GOOGLE_API_KEY`.
 - **Secretos:** solo en `.env` (ignorado por git) o en las variables del servicio. Los logs no muestran claves
   ni el token (se silencia el log de `httpx`, que incluye la URL con el token). Errores del modelo: el cliente
   recibe un mensaje claro, sin stack trace.
-- **Sin efectos reales:** el catálogo y los pedidos son ficticios; `registrar_solicitud` solo guarda en memoria
-  (no envía correos ni toca sistemas). El bot solo responde a quien le escribe.
+- **Conversaciones separadas:** `/chat` usa `thread_id = api-<user_id>`, así con la API key no se puede leer ni
+  continuar una conversación de Telegram (`telegram-<chat_id>`).
+- **SQL:** todas las consultas son parametrizadas (el texto del usuario nunca se concatena; los comodines de
+  `LIKE` se escapan). Si Postgres no responde, las herramientas dicen "Catálogo no disponible" y la API sigue arriba;
+  si no responde al arrancar, la memoria queda en RAM.
+- **Webhook idempotente:** se ignoran los `update_id` repetidos (Telegram reintenta si la app tarda en despertar),
+  así no se responde ni se registra dos veces.
+- **Sin efectos reales:** el catálogo y los pedidos son ficticios; `registrar_solicitud` solo guarda la solicitud
+  (Postgres o memoria), no envía correos ni toca sistemas. El bot solo responde a quien le escribe.
 - **Costos:** mensajes de máximo 1000 caracteres, historial acotado a 12 mensajes, 1 reintento y 60 s de
   timeout por llamada al modelo. Para detener todo: `Ctrl+C` en cada terminal (y en Render, **Suspend**).
 
 ## 5. Límites conocidos
 
-- La memoria de las conversaciones y las solicitudes registradas viven en RAM: se borran al reiniciar.
+- Sin `DATABASE_URL`, la memoria y las solicitudes viven en RAM y se borran al reiniciar. Con Postgres, el
+  historial que ve el modelo sigue acotado a 12 mensajes, pero la base no borra conversaciones antiguas.
 - Datos de prueba fijos (8 productos, 4 pedidos, 8 ciudades); no hay compra ni pago real.
 - No se verifica que quien consulta un pedido sea su dueño (en un sistema real se pediría correo o RUT).
-- El modelo no es determinista: el router acierta ≥13/15 casos en las pruebas (15/15 en nuestra ejecución) y las
+- El modelo no es determinista: el router debe acertar ≥16/18 casos en las pruebas (18/18 en nuestra ejecución) y las
   respuestas pueden variar en redacción; las cifras salen de las herramientas.
 - `gemini-3.5-flash-lite` ignora `temperature` (usa valores fijos de muestreo).
 - Telegram: solo mensajes de texto (fotos, audios y stickers se ignoran).
@@ -191,14 +225,17 @@ Desplegado en **Render** (plan Free) desde este repositorio: <https://agente-eco
 
 1. Render → **+ New → Web Service** → el repositorio → Build `pip install -r requirements.txt` →
    Start `uvicorn api.app:app --host 0.0.0.0 --port $PORT` (el mismo del `Procfile`) → Instance **Free**.
-2. **Environment:** `GOOGLE_API_KEY`, `MODELO`, `API_KEY`, `TELEGRAM_TOKEN`, `TELEGRAM_SECRET`,
-   `TELEGRAM_ALLOWED_IDS` → **Deploy**.
-3. Con la URL pública en `PUBLIC_URL` del `.env` local:
+2. **Postgres:** Render → **+ New → Postgres** (misma región que el Web Service) → copia la **Internal Database
+   URL**.
+3. **Environment:** `GOOGLE_API_KEY`, `MODELO`, `API_KEY`, `TELEGRAM_TOKEN`, `TELEGRAM_SECRET`,
+   `TELEGRAM_ALLOWED_IDS` y `DATABASE_URL` (la URL del paso 2) → **Deploy**. En **Logs** debe aparecer
+   `memoria en postgres`.
+4. Con la URL pública en `PUBLIC_URL` del `.env` local:
    ```bash
    python scripts/set_webhook.py      # "Webhook was set"
    python scripts/webhook_info.py     # URL …/telegram, 0 pendientes, sin errores
    ```
-4. Cada `git push` a `main` redespliega. Errores en la pestaña **Logs**.
+5. Cada `git push` a `main` redespliega. Errores en la pestaña **Logs**.
 
 En el plan Free la app se duerme tras ~15 min sin uso: el primer mensaje puede tardar ~50 s.
 **Si no responde:** `webhook_info.py` muestra el último error (`403` = secreto distinto, `404` = falta
@@ -206,8 +243,8 @@ En el plan Free la app se duerme tras ~15 min sin uso: el primer mensaje puede t
 (`Falló el grafo router` = problema con `GOOGLE_API_KEY` o `MODELO`).
 
 **Para otra plataforma (Heroku, etc.):** arranque `uvicorn api.app:app --host 0.0.0.0 --port $PORT`; puerto,
-URL y secretos se configuran por variables de entorno; no hay datos que conservar (todo es de prueba y en
-memoria); servicios externos: Gemini y Telegram.
+URL, secretos y `DATABASE_URL` se configuran por variables de entorno; los datos que se conservan están en
+Postgres; servicios externos: Gemini y Telegram.
 
 Bruno (opcional): Open Collection → carpeta `bruno/` → entorno `local` o `render` → en el entorno completa la
 variable secreta `apiKey` con tu `API_KEY` (Bruno no la guarda en los archivos).
