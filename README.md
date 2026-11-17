@@ -247,10 +247,10 @@ En el plan Free la app se duerme tras ~15 min sin uso: el primer mensaje puede t
 URL, secretos y `DATABASE_URL` se configuran por variables de entorno; los datos que se conservan están en
 Postgres; servicios externos: Gemini y Telegram.
 
+Bruno (opcional): Open Collection → carpeta `bruno/` → entorno `local` o `render` → en el entorno completa la
+variable secreta `apiKey` con tu `API_KEY` (Bruno no la guarda en los archivos).
+
 ## 7. Canal con voz en n8n (opcional)
 
 Un segundo bot de Telegram atendido por **n8n en la nube** acepta texto y notas de voz: la voz se transcribe con
 Gemini y el texto va a `/chat` en Render con `X-API-Key`. Instrucciones en [`n8n/README.md`](n8n/README.md).
-
-Bruno (opcional): Open Collection → carpeta `bruno/` → entorno `local` o `render` → en el entorno completa la
-variable secreta `apiKey` con tu `API_KEY` (Bruno no la guarda en los archivos).
